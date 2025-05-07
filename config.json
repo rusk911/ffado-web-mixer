@@ -3,43 +3,43 @@
         "00130e04014029c6": {
             "buses": [
                 {
-                    "name": "Marta bus",
+                    "name": "Vocalist 1 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [0, 1],
                     "destinations": ["Line/Out:01", "Line/Out:02"]
                 },
                 {
-                    "name": "Federico bus",
+                    "name": "Vocalist 2 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [2, 3],
                     "destinations": ["Line/Out:09", "Line/Out:10"]
                 },
                 {
-                    "name": "Daniele bus",
+                    "name": "Keyboardist bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [4, 5],
                     "destinations": ["Line/Out:07", "Line/Out:08"]
                 },
                 {
-                    "name": "Murat bus",
+                    "name": "Guitarist 1 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [6, 7],
                     "destinations": ["Line/Out:05", "Line/Out:06"]
                 },
                 {
-                    "name": "Dmitry bus",
+                    "name": "Guitarist 2 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [8, 9],
                     "destinations": ["Line/Out:03", "Line/Out:04"]
                 },
                 {
-                    "name": "Francesco bus",
+                    "name": "Bassist bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [10, 11],
                     "destinations": ["ADAT/Out:01", "ADAT/Out:02"]
                 },
                 {
-                    "name": "Bohdan bus",
+                    "name": "Drummer bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [12, 13],
                     "destinations": ["ADAT/Out:03", "ADAT/Out:04"]
@@ -47,42 +47,42 @@
             ],
             "inputs": [
                 {
-                    "name": "Marta",
+                    "name": "Vocal 1",
                     "mixer_inputs": [0],
                     "sources": ["Mic/Lin/Inst:01"]
                 },
                 {
-                    "name": "Federico",
+                    "name": "Vocal 2",
                     "mixer_inputs": [1],
                     "sources": ["Mic/Lin/Inst:02"]
                 },
                 {
-                    "name": "Murat",
+                    "name": "Guitar 1",
                     "mixer_inputs": [2],
                     "sources": ["Mic/Lin/In:03"]
                 },
                 {
-                    "name": "Dmitry",
+                    "name": "Guitar 2",
                     "mixer_inputs": [3],
                     "sources": ["Mic/Lin/In:04"]
                 },
                 {
-                    "name": "Daniele",
+                    "name": "Keyboards",
                     "mixer_inputs": [16, 17],
                     "sources": ["Mic/Lin/In:05", "Mic/Lin/In:06"]
                 },
                 {
-                    "name": "Francesco",
+                    "name": "Bass",
                     "mixer_inputs": [6],
                     "sources": ["Mic/Lin/In:07"]
                 },
                 {
-                    "name": "Bohdan",
+                    "name": "Drums",
                     "mixer_inputs": [7, 8],
                     "sources": ["ADAT/In:01", "ADAT/In:02"]
                 },
                 {
-                    "name": "Backing",
+                    "name": "Backing track",
                     "mixer_inputs": [9, 10],
                     "sources": ["1394/In:01", "1394/In:02"]
                 },
