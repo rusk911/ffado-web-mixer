@@ -1,0 +1,138 @@
+{
+    "devices": {
+        "00130e04014029c6": {
+            "buses": [
+                {
+                    "name": "Marta bus",
+                    "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "mixer_outputs": [0, 1],
+                    "destinations": ["Line/Out:01", "Line/Out:02"]
+                },
+                {
+                    "name": "Federico bus",
+                    "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "mixer_outputs": [2, 3],
+                    "destinations": ["Line/Out:09", "Line/Out:10"]
+                },
+                {
+                    "name": "Daniele bus",
+                    "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "mixer_outputs": [4, 5],
+                    "destinations": ["Line/Out:07", "Line/Out:08"]
+                },
+                {
+                    "name": "Murat bus",
+                    "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "mixer_outputs": [6, 7],
+                    "destinations": ["Line/Out:05", "Line/Out:06"]
+                },
+                {
+                    "name": "Dmitry bus",
+                    "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "mixer_outputs": [8, 9],
+                    "destinations": ["Line/Out:03", "Line/Out:04"]
+                },
+                {
+                    "name": "Francesco bus",
+                    "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "mixer_outputs": [10, 11],
+                    "destinations": ["ADAT/Out:01", "ADAT/Out:02"]
+                },
+                {
+                    "name": "Bohdan bus",
+                    "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                    "mixer_outputs": [12, 13],
+                    "destinations": ["ADAT/Out:03", "ADAT/Out:04"]
+                }
+            ],
+            "inputs": [
+                {
+                    "name": "Marta",
+                    "mixer_inputs": [0],
+                    "sources": ["Mic/Lin/Inst:01"]
+                },
+                {
+                    "name": "Federico",
+                    "mixer_inputs": [1],
+                    "sources": ["Mic/Lin/Inst:02"]
+                },
+                {
+                    "name": "Murat",
+                    "mixer_inputs": [2],
+                    "sources": ["Mic/Lin/In:03"]
+                },
+                {
+                    "name": "Dmitry",
+                    "mixer_inputs": [3],
+                    "sources": ["Mic/Lin/In:04"]
+                },
+                {
+                    "name": "Daniele",
+                    "mixer_inputs": [16, 17],
+                    "sources": ["Mic/Lin/In:05", "Mic/Lin/In:06"]
+                },
+                {
+                    "name": "Francesco",
+                    "mixer_inputs": [6],
+                    "sources": ["Mic/Lin/In:07"]
+                },
+                {
+                    "name": "Bohdan",
+                    "mixer_inputs": [7, 8],
+                    "sources": ["ADAT/In:01", "ADAT/In:02"]
+                },
+                {
+                    "name": "Backing",
+                    "mixer_inputs": [9, 10],
+                    "sources": ["1394/In:01", "1394/In:02"]
+                },
+                {
+                    "name": "Click",
+                    "mixer_inputs": [11],
+                    "sources": ["1394/In:03"]
+                }
+            ]
+        },
+        "00130e0401408671": {
+            "buses": [
+                {
+                    "name": "Drums mix",
+                    "inputs": [0, 1, 2, 3, 4, 5],
+                    "mixer_outputs": [0, 1],
+                    "destinations": ["ADAT/Out:01", "ADAT/Out:02"]
+                }],
+            "inputs":[
+                {
+                    "name": "Overhead",
+                    "mixer_inputs": [0, 1],
+                    "sources": ["Mic/Lin/Inst:01", "Mic/Lin/Inst:02"]
+                },
+                {
+                    "name": "Kick",
+                    "mixer_inputs": [2],
+                    "sources": ["Mic/Lin/In:03"]
+                },
+                {
+                    "name": "Snare",
+                    "mixer_inputs": [3],
+                    "sources": ["Mic/Lin/In:04"]
+                },
+                {
+                    "name": "Tom 1",
+                    "mixer_inputs": [4],
+                    "sources": ["Mic/Lin/In:05"]
+                },
+                {
+                    "name": "Tom 2",
+                    "mixer_inputs": [5],
+                    "sources": ["Mic/Lin/In:06"]
+                },
+                {
+                    "name": "Floor tom",
+                    "mixer_inputs": [6],
+                    "sources": ["Mic/Lin/In:07"]
+                }
+            ]
+        }
+    }
+}

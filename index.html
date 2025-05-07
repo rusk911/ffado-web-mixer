@@ -1,0 +1,231 @@
+<html ng-app="app">
+<head>
+    <style>
+        *{box-sizing: border-box;}
+        body{
+            background-color:gray;
+            font-size:5rem;
+            font-weight: bold;
+        }
+        p {
+            margin: 15px;
+        }
+        .mixfader {
+            width: 100%;
+        }
+        .bus {
+            width: 100%;
+            background-color: black;
+            padding: 2px;
+            display: none;
+        }
+        .fader {
+            background-color: gray;
+            padding: 5px;
+            margin: 5px;
+        }
+        #bus_selector {
+            width:100%;
+            height: 8rem;
+            font-size: 6rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        /********** Range Input Styles **********/
+        /*Range Reset*/
+        input[type="range"] {
+        -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        /* Removes default focus */
+        input[type="range"]:focus {
+        outline: none;
+        }
+
+        /***** Chrome, Safari, Opera and Edge Chromium styles *****/
+        /* slider track */
+        input[type="range"]::-webkit-slider-runnable-track {
+        background-color: #053a5f;
+        border-radius: 0.5rem;
+        height: 3rem;  
+        }
+
+        /* slider thumb */
+        input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none; /* Override default look */
+        appearance: none;
+        margin-top: -12px; /* Centers thumb on the track */
+
+        /*custom styles*/
+        background-color: #5cd5eb;
+        height: 4rem;
+        width: 2rem;
+        }
+
+        input[type="range"]:focus::-webkit-slider-thumb {   
+        border: 1px solid #053a5f;
+        outline: 3px solid #053a5f;
+        outline-offset: 0.125rem; 
+        }
+
+        /******** Firefox styles ********/
+        /* slider track */
+        input[type="range"]::-moz-range-track {
+        background-color: #053a5f;
+        border-radius: 0.5rem;
+        height: 0.5rem;
+        }
+
+        /* slider thumb */
+        input[type="range"]::-moz-range-thumb {
+        border: none; /*Removes extra border that FF applies*/
+        border-radius: 0; /*Removes default border-radius that FF applies*/
+
+        /*custom styles*/
+        background-color: #5cd5eb;
+        height: 2rem;
+        width: 1rem;
+        }
+
+        input[type="range"]:focus::-moz-range-thumb {
+        border: 1px solid #053a5f;
+        outline: 3px solid #053a5f;
+        outline-offset: 0.125rem; 
+        }
+    </style>
+</head>
+<body>
+<select id="bus_selector" name="bus_selector">
+    <option>Choose bus</option>
+</select>
+<template id="option">
+    <option></option>
+</template>
+<template id="bus">
+    <div class="bus"></div>
+</template>
+<template id="fader">
+    <div class="fader">
+        <p></p>
+        <input type="range" min="-40" max="12" step="1" class="mixfader"/>
+    </div>
+</template>
+</body>
+
+<script type="text/javascript">
+    //let config =
+    var myWebSocket;
+    var config;
+    var clientId;
+    function buildMixer(config) {
+        const select = document.querySelector("#bus_selector");
+        for(const [uuid, device] of Object.entries(config.devices)) {
+            for(const [busKey, bus] of Object.entries(device.buses)) {
+                const optionClone = document.querySelector("#option").content.cloneNode(true);
+                const option = optionClone.querySelectorAll('option');
+                option[0].textContent = bus.name;
+                option[0].value = uuid + '_' + busKey;
+                option[0].dataset.uuid = uuid;
+                option[0].dataset.bus = busKey;
+                select.appendChild(optionClone);
+                const busClone = document.querySelector("#bus").content.cloneNode(true);
+                const busDiv = busClone.querySelectorAll('div');
+                busDiv[0].id = uuid + '_' + busKey;
+                for(const [faderKey, inputNumber] of Object.entries(bus.inputs)) {
+                    const faderClone = document.querySelector("#fader").content.cloneNode(true);
+                    const name = faderClone.querySelectorAll('p');
+                    name[0].innerHTML = device.inputs[inputNumber].name;
+                    const input = faderClone.querySelectorAll('input');
+                    input[0].id = uuid+'_'+inputNumber+'_'+busKey;
+                    input[0].dataset.bus = busKey;
+                    input[0].dataset.input = inputNumber;
+                    input[0].dataset.pan = bus.volumes[faderKey].pan;
+                    input[0].value = bus.volumes[faderKey].volume;
+                    input[0].addEventListener("input", (event) => {
+                        myWebSocket.send(JSON.stringify({'a':'v','c':clientId,'d':[uuid, parseInt(event.target.dataset.input), parseInt(event.target.dataset.bus), parseInt(event.target.value), parseFloat(event.target.dataset.pan)]}));
+                    });
+                    busDiv[0].appendChild(faderClone);
+                }
+                document.querySelector('body').appendChild(busClone)
+            }
+        }
+        select.addEventListener("change", (event) => {
+            console.log(event.target.value);
+            showBus(event.target.value);
+        }, false);
+    }
+
+    function setVolume(data) {
+        document.getElementById(data[0]+'_'+data[1]+'_'+data[2]).value = data[3];
+        document.getElementById(data[0]+'_'+data[1]+'_'+data[2]).dataset.pan = data[4];
+    }
+
+    function connectToWS() {
+        var endpoint = 'ws://' + location.host + '/ws';
+        if (myWebSocket !== undefined) {
+            myWebSocket.close();
+        }
+
+        myWebSocket = new WebSocket(endpoint);
+
+
+        myWebSocket.onmessage = function(event) {
+            var leng;
+            if (event.data.size === undefined) {
+                leng = event.data.length;
+            } else {
+                leng = event.data.size;
+            }
+            //console.log("onmessage. size: " + leng + ", content: " + event.data);
+            data = JSON.parse(event.data);
+            if(data.action == 'updateMeter') {
+                //updateMeter(data.channel, data.data);
+            }
+            if(data.action == 'setVolume') {
+                setVolume(data.data);
+            }
+            if(data.action == 'buildMixer') {
+                clientId = data.clientId;
+                buildMixer(data.data);
+            }
+        }
+
+        myWebSocket.onopen = function(evt) {
+            console.log("onopen.");
+        };
+
+        myWebSocket.onclose = function(evt) {
+            console.log("onclose.");
+        };
+
+        myWebSocket.onerror = function(evt) {
+            console.log(evt.target.url);
+        };
+
+        window.onunload()
+    }
+
+    function sendMsg() {
+        var message = document.getElementById("myMessage").value;
+        myWebSocket.send(message);
+    }
+
+    function closeConn() {
+        myWebSocket.close();
+    }
+
+    function showBus(busId) {
+        [].forEach.call(document.querySelectorAll('.bus'), function (el) {
+            el.style.display = 'none';
+        });
+        const bus = document.getElementById(busId);
+        console.log(bus);
+        bus.style.display = "block";
+    }
+    
+    connectToWS();
+</script>
+</html>

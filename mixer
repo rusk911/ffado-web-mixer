@@ -1,0 +1,277 @@
+#!/usr/bin/python
+#
+import sys
+sys.path.insert(0, "/usr/share/ffado-mixer-qt4/" )
+from aiohttp import web
+from aiohttp.http_websocket import WSCloseCode
+from aiohttp.client_exceptions import ClientConnectionResetError
+import jinja2,  aiohttp_jinja2, aiohttp, math, dbus, os, json, timesched, subprocess
+from ffado.dbus_util import *
+from collections import defaultdict
+from ffado.config import *
+from ffado.configuration import *
+from ffado.dbus_util import *
+s = timesched.Scheduler()
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("ffado-websockets-mixer")
+
+with open(os.path.dirname(__file__) + '/config.json') as json_data:
+    config = json.load(json_data)
+    json_data.close()
+
+def toDBvalue(value):
+    n = int(value)
+    c2p14 = 16384.0
+    if n > 164:
+        return round(20.0*math.log10(float(n)/c2p14), 2)
+    else:
+        return -40.0
+
+def fromDBvalue(value):
+    v = float(value)
+    c2p14 = 16384.0
+    if (v > -40):
+        return int(round(math.pow(10.0, (value/20.0))*c2p14, 0))
+    else:
+        return 0
+
+# v, vl, vr in linear scale
+# b range in [-1:1]
+def getVolumeLeft(v, b):
+    return int(round(0.5*v*(1.0-b),0))
+def getVolumeRight(v, b):
+    return v-int(round(0.5*v*(1.0-b),0))
+def getStereoVolume(vl, vr):
+    return int(round(vl+vr,0))
+def getStereoBalance(vl, vr):
+    if ((vl+vr) == 0):
+        return 0
+    else:
+        return round(float(vr-vl)/float(vr+vl),2)
+
+
+class MatrixMixer():
+    def __init__(self, guid):
+        bus = dbus.SessionBus()
+        self.guid = guid
+        self.device = bus.get_object("org.ffado.Control", "/org/ffado/Control/DeviceManager/%s/EAP/MatrixMixer" % guid)
+        self.interface = dbus.Interface(self.device, dbus_interface="org.ffado.Control.Element.MatrixMixer")
+        # update volumes from device on startup
+        self.updateVolumes()
+
+    def setVolume(self, n):
+        ins = config['devices'][self.guid]['inputs'][config['devices'][self.guid]['buses'][n[2]]['inputs'][n[1]]]['mixer_inputs']
+        outs = config['devices'][self.guid]['buses'][n[2]]['mixer_outputs']
+        config['devices'][self.guid]['buses'][n[2]]['volumes'][n[1]]['volume'] = int(n[3])
+        config['devices'][self.guid]['buses'][n[2]]['volumes'][n[1]]['pan'] = float(n[4])
+        if len(ins) == 2 and len(outs) == 2:
+            # stereo input, stereo output
+            self.interface.setValue(ins[0], outs[0], getVolumeLeft(fromDBvalue(int(n[3])), float(n[4])))
+            self.interface.setValue(ins[1], outs[1], getVolumeRight(fromDBvalue(int(n[3])), float(n[4])))
+        elif len(ins) == 1 and len(outs) == 2:
+            # mono input, stereo output
+            self.interface.setValue(ins[0], outs[0], getVolumeLeft(fromDBvalue(int(n[3])), float(n[4])))
+            self.interface.setValue(ins[0], outs[1], getVolumeRight(fromDBvalue(int(n[3])), float(n[4])))
+        else:
+            # mono input, mono output
+            self.interface.setValue(ins[0], outs[0], fromDBvalue(int(n[3])))
+
+    def setPan(self, n):
+        pass
+    
+    def updateVolumes(self):
+        ins = config['devices'][self.guid]['inputs']
+        outKey = 0
+        for output in config['devices'][self.guid]['buses']:
+            config['devices'][self.guid]['buses'][outKey]['volumes'] = []
+            for inputIdx in output['inputs']:
+                if len(output['mixer_outputs']) == 2 and len(ins[inputIdx]['mixer_inputs']) == 2:
+                    # stereo input, stereo output
+                    vl = self.interface.getValue(ins[inputIdx]['mixer_inputs'][0], output['mixer_outputs'][0])
+                    vr = self.interface.getValue(ins[inputIdx]['mixer_inputs'][1], output['mixer_outputs'][1])
+                    config['devices'][self.guid]['buses'][outKey]['volumes'].append({'volume': toDBvalue(getStereoVolume(vl, vr)), 'pan': getStereoBalance(vl, vr)})
+                elif len(output['mixer_outputs']) == 2 and len(ins[inputIdx]['mixer_inputs']) == 1:
+                    # mono input, stereo output
+                    vl = self.interface.getValue(ins[inputIdx]['mixer_inputs'][0], output['mixer_outputs'][0])
+                    vr = self.interface.getValue(ins[inputIdx]['mixer_inputs'][0], output['mixer_outputs'][1])
+                    config['devices'][self.guid]['buses'][outKey]['volumes'].append({'volume': toDBvalue(getStereoVolume(vl, vr)), 'pan': getStereoBalance(vl, vr)})
+                else:
+                    # mono input, mono output
+                    v = self.interface.getValue(ins[inputIdx]['mixer_inputs'][0], output['mixer_outputs'][0])
+                    config['devices'][self.guid]['buses'][outKey]['volumes'].append({'volume': toDBvalue(v), 'pan': 0.0})
+
+            outKey = outKey+1
+
+
+
+
+class FfadoDbusClient():
+    def __init__(self):
+        self.connectToDBUS()
+        self.devices = {}
+        self.DiscoverDevices()
+
+    def connectToDBUS(self):
+        try:
+            self.setupDeviceManager()
+        except dbus.DBusException as ex:
+            self.tryStartDBUSServer()
+
+    def tryStartDBUSServer(self):
+        try:
+            self.setupDeviceManager()
+        except dbus.DBusException as ex:
+            subprocess.Popen(['ffado-dbus-server', '-v3'], close_fds=True).pid
+            log.info("Started DBus service, waiting 5 seconds...")
+            s.oneshot(5, self.connectToDBUS)
+
+    def setupDeviceManager(self):
+        self.devmgr = DeviceManagerInterface(FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH)
+
+    def DiscoverDevices(self):
+        # 00130e04048014ef
+        devices = DeviceList( SYSTEM_CONFIG_FILE )
+        devices.updateFromFile( USER_CONFIG_FILE )
+        guids_present = []
+        guid_indexes = {}
+        panels = {}
+        nbDevices = self.devmgr.getNbDevices()
+
+        # list of panels present
+        guids_with_tabs = panels.keys()
+
+        for idx in range(nbDevices):
+
+            path = self.devmgr.getDeviceName(idx)
+            cfgrom = ConfigRomInterface(FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+'/DeviceManager/'+path)
+            guid = cfgrom.getGUID()
+            guids_present.append(guid)
+            guid_indexes[guid] = idx
+
+            # figure out what to remove
+            # the special panel (generic)
+            # that has (pseudo-)GUID 0
+            # is also automatically removed
+            to_remove = []
+            for guid in guids_with_tabs:
+                if not guid in guids_present:
+                    to_remove.append(guid)
+                    log.debug("going to remove %s" % str(guid))
+                else:
+                    log.debug("going to keep %s" % str(guid))
+
+            # figure out what to add
+            to_add = []
+            for guid in guids_present:
+                if not guid in guids_with_tabs:
+                    to_add.append(guid)
+                    log.debug("going to add %s" % str(guid))
+
+            # update the widget
+            for guid in to_remove:
+                del panels[guid]
+
+            for guid in to_add:
+                # retrieve the device manager index
+                idx = guid_indexes[guid]
+                path = self.devmgr.getDeviceName(idx)
+                log.info("Adding device %d: %s" % (idx, path))
+                cfgrom = ConfigRomInterface(FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+'/DeviceManager/'+path)
+                vendorId = cfgrom.getVendorId()
+                modelId = cfgrom.getModelId()
+                guid = str(cfgrom.getGUID())
+                vendorName = cfgrom.getVendorName()
+                modelName = cfgrom.getModelName()
+                log.info(" Found (%s, %X, %X) %s %s" % (guid, vendorId, modelId, vendorName, modelName))
+                # todo: use it for configuration GUI later
+                hw = ControlInterface(FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+'/DeviceManager/'+path)
+                clockselect = ClockSelectInterface( FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+"/DeviceManager/"+path )
+                samplerateselect = SamplerateSelectInterface( FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+"/DeviceManager/"+path )
+                streamingstatus = StreamingStatusInterface( FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+"/DeviceManager/"+path )
+                nickname = TextInterface( FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+"/DeviceManager/"+path+"/Generic/Nickname" )
+             
+                self.devices[guid] = MatrixMixer(guid)
+    
+    def setVolume(self, data):
+        mixer = self.devices[data[0]]
+        mixer.setVolume(data)
+
+
+#server part
+async def index(request):
+    return aiohttp_jinja2.render_template('index.html', request, {})
+
+async def websocket_handler(request):
+    aiohttp.TCPConnector(force_close=True)
+    ws = web.WebSocketResponse(autoping=True, heartbeat=60)
+    # using object ID as unique client identifier.
+    clientId = id(ws)
+    ready = ws.can_prepare(request=request)
+    if not ready:
+        await ws.close(code=WSCloseCode.PROTOCOL_ERROR)
+        request.app['websockets'].remove(clientId)
+    await ws.prepare(request)
+
+    log.info('%s connected', clientId)
+
+    # Inform current WS subscription that he's connecting:
+    await ws.send_json({'clientId': clientId, 'action': 'buildMixer', 'data': config})
+    if request.app['websockets'].get(clientId):
+            log.warning('User already connected. using existing connection.')
+            await ws.close(code=WSCloseCode.TRY_AGAIN_LATER, message=b'ClientId already in use')
+            del request.app['websockets'][clientId]
+            return ws
+    else:
+        request.app['websockets'][clientId] = ws
+
+    async for msg in ws:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            if msg.data == 'close':
+                await ws.close()
+                del request.app['websockets'][clientId]
+            else:
+                try:
+                    messageObj = msg.json()
+                    
+                    if type(messageObj) is dict and 'a' in messageObj.keys():                
+                        if messageObj['a'] == 'v':
+                            dbusClient.setVolume(messageObj['d'])
+                            todelete = []
+                            for k, client in request.app['websockets'].items():
+                                if k == clientId:
+                                    # don't send it back to sender
+                                    continue
+                                try:
+                                    await client.send_json({'action': 'setVolume', 'data': messageObj['d']})
+                                except ClientConnectionResetError:
+                                    log.info('connection still in pool, remove it')
+                                    todelete.append(k)
+                            for k in todelete:
+                                del request.app['websockets'][k]
+
+                except json.decoder.JSONDecodeError:
+                    log.info('Message is not json object')
+
+
+        elif msg.type == aiohttp.WSMsgType.ERROR:
+            log.info('ws connection closed with exception %s' %
+                ws.exception())
+
+    log.info('websocket connection closed')
+
+    return ws
+
+def shutdown():
+    for ws in app['websockets'].values():
+        ws.close()
+    app['websockets'].clear()
+    
+dbusClient = FfadoDbusClient()
+app = web.Application()
+app['websockets'] = defaultdict(dict)
+app.on_shutdown.append(shutdown)
+aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(searchpath=os.path.dirname(__file__)))
+app.add_routes([web.get('/', index),
+               web.get('/ws', websocket_handler)])
+
+web.run_app(app)
