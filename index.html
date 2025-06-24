@@ -120,6 +120,7 @@
     var myWebSocket;
     var config;
     var clientId;
+    var selectedBus;
     function buildMixer(config) {
         const select = document.querySelector("#bus_selector");
         for(const [uuid, device] of Object.entries(config.devices)) {
@@ -165,9 +166,6 @@
 
     function connectToWS() {
         var endpoint = 'ws://' + location.host + '/ws';
-        if (myWebSocket !== undefined) {
-            myWebSocket.close();
-        }
 
         myWebSocket = new WebSocket(endpoint);
 
@@ -199,22 +197,15 @@
 
         myWebSocket.onclose = function(evt) {
             console.log("onclose.");
+            setTimeout(function() {
+                connectToWS();
+            }, 1000);
         };
 
         myWebSocket.onerror = function(evt) {
             console.log(evt.target.url);
+            myWebSocket.close();
         };
-
-        window.onunload()
-    }
-
-    function sendMsg() {
-        var message = document.getElementById("myMessage").value;
-        myWebSocket.send(message);
-    }
-
-    function closeConn() {
-        myWebSocket.close();
     }
 
     function showBus(busId) {
