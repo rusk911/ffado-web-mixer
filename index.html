@@ -24,6 +24,25 @@
             padding: 5px;
             margin: 5px;
         }
+        .peak_meter {
+            background: linear-gradient(-90deg, #F40000 0%, #EC9500 10%, #BADE09 18%, #429321 45%);
+            width: 100%;
+            height: 50px;
+            padding: 0;
+            margin-bottom: 20px;
+            display:flex;
+            flex-direction:column;
+            align-items: flex-end;
+            align-content: stretch;
+        }
+        .peak_meter div {
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            min-height: 10px;
+            background-color: black;
+            flex-grow: 1;
+        }
         #bus_selector {
             width:100%;
             height: 8rem;
@@ -110,13 +129,13 @@
 <template id="fader">
     <div class="fader">
         <p></p>
-        <input type="range" min="-40" max="12" step="1" class="mixfader"/>
+        <div class="peak_meter"></div>
+        <input type="range" min="-40" max="6" step="1" class="mixfader"/>
     </div>
 </template>
 </body>
 
 <script type="text/javascript">
-    //let config =
     var myWebSocket;
     var config;
     var clientId;
@@ -148,15 +167,37 @@
                     input[0].addEventListener("input", (event) => {
                         myWebSocket.send(JSON.stringify({'a':'v','c':clientId,'d':[uuid, parseInt(event.target.dataset.input), parseInt(event.target.dataset.bus), parseInt(event.target.value), parseFloat(event.target.dataset.pan)]}));
                     });
+                    const peak_meter = faderClone.querySelectorAll('div.peak_meter');
+                    for(k in device.inputs[inputNumber].sources) {
+                        const div = document.createElement("div");
+                        div.id = "peak_" + uuid + "_" + busKey + "_" + faderKey + "_" + k;
+                        peak_meter[0].appendChild(div);
+                    }
                     busDiv[0].appendChild(faderClone);
                 }
                 document.querySelector('body').appendChild(busClone)
             }
         }
         select.addEventListener("change", (event) => {
-            console.log(event.target.value);
+            
             showBus(event.target.value);
         }, false);
+    }
+
+    function updateMeters(values) {
+        for(const [uuid, device] of Object.entries(config.devices)) {
+            for(const [busKey, bus] of Object.entries(device.buses)) {
+                for(const [faderKey, inputNumber] of Object.entries(bus.inputs)) {
+                    for(k in device.inputs[inputNumber].sources) {
+                        const peak_meter = document.getElementById("peak_" + uuid + "_" + busKey + "_" + faderKey + "_" + k);
+                        const fader_value = document.getElementById(uuid + "_" + faderKey + "_" + busKey).value;
+                        const factor = Math.pow(10, fader_value/20);
+                        const value = 100 - (Math.round(values[uuid].inputs[faderKey][k] * 11.11) * factor);
+                        peak_meter.style.width = value + '%';
+                    }
+                }
+            }
+        }
     }
 
     function setVolume(data) {
@@ -177,10 +218,9 @@
             } else {
                 leng = event.data.size;
             }
-            //console.log("onmessage. size: " + leng + ", content: " + event.data);
             data = JSON.parse(event.data);
-            if(data.action == 'updateMeter') {
-                //updateMeter(data.channel, data.data);
+            if(data.action == 'updateMeters') {
+                updateMeters(data.data);
             }
             if(data.action == 'setVolume') {
                 setVolume(data.data);
@@ -188,6 +228,7 @@
             if(data.action == 'buildMixer') {
                 clientId = data.clientId;
                 buildMixer(data.data);
+                config = data.data;
             }
         }
 

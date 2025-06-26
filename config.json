@@ -1,136 +1,132 @@
 {
     "devices": {
-        "00130e04014029c6": {
+        "00130e04048014ef": {
             "buses": [
                 {
                     "name": "Vocalist 1 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [0, 1],
-                    "destinations": ["Line/Out:01", "Line/Out:02"]
+                    "destinations": ["Line/Out:01", "Line/Out:02"],
+                    "monitor": {
+                        "device": "00130e04048014ef",
+                        "outputs": [0, 1]
+                    }
                 },
                 {
                     "name": "Vocalist 2 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [2, 3],
-                    "destinations": ["Line/Out:09", "Line/Out:10"]
+                    "destinations": ["Line/Out:03", "Line/Out:04"],
+                    "monitor": {
+                        "device": "00130e04048014ef",
+                        "outputs": [2, 3]
+                    }
                 },
                 {
                     "name": "Keyboardist bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [4, 5],
-                    "destinations": ["Line/Out:07", "Line/Out:08"]
+                    "destinations": ["Line/Out:05", "Line/Out:06"],
+                    "monitor": {
+                        "device": "00130e04048014ef",
+                        "outputs": [4, 5]
+                    }
                 },
                 {
                     "name": "Guitarist 1 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [6, 7],
-                    "destinations": ["Line/Out:05", "Line/Out:06"]
+                    "destinations": ["Line/Out:05", "Line/Out:06"],
+                    "monitor": {
+                        "device": "00130e04048014ef",
+                        "outputs": [6, 7]
+                    }
                 },
                 {
                     "name": "Guitarist 2 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [8, 9],
-                    "destinations": ["Line/Out:03", "Line/Out:04"]
+                    "destinations": ["Line/Out:03", "Line/Out:04"],
+                    "monitor": {
+                        "device": "00130e04048014ef",
+                        "outputs": [2, 3]
+                    }
                 },
                 {
                     "name": "Bassist bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [10, 11],
-                    "destinations": ["ADAT/Out:01", "ADAT/Out:02"]
+                    "destinations": ["Line/Out:03", "Line/Out:04"],
+                    "monitor": {
+                        "device": "00130e04048014ef",
+                        "outputs": [2, 3]
+                    }
                 },
                 {
                     "name": "Drummer bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [12, 13],
-                    "destinations": ["ADAT/Out:03", "ADAT/Out:04"]
+                    "destinations": ["Line/Out:03", "Line/Out:04"],
+                    "monitor": {
+                        "device": "00130e04048014ef",
+                        "outputs": [2, 3]
+                    }
                 }
             ],
             "inputs": [
                 {
                     "name": "Vocal 1",
                     "mixer_inputs": [0],
+                    "mixer_input_names": ["Mixer/In:01"],
                     "sources": ["Mic/Lin/Inst:01"]
                 },
                 {
                     "name": "Vocal 2",
                     "mixer_inputs": [1],
+                    "mixer_input_names": ["Mixer/In:02"],
                     "sources": ["Mic/Lin/Inst:02"]
                 },
                 {
                     "name": "Guitar 1",
                     "mixer_inputs": [2],
+                    "mixer_input_names": ["Mixer/In:03"],
                     "sources": ["Mic/Lin/In:03"]
                 },
                 {
                     "name": "Guitar 2",
                     "mixer_inputs": [3],
+                    "mixer_input_names": ["Mixer/In:04"],
                     "sources": ["Mic/Lin/In:04"]
                 },
                 {
                     "name": "Keyboards",
                     "mixer_inputs": [16, 17],
+                    "mixer_input_names": ["Mixer/In:05", "Mixer/In:06"],
                     "sources": ["Mic/Lin/In:05", "Mic/Lin/In:06"]
                 },
                 {
                     "name": "Bass",
                     "mixer_inputs": [6],
+                    "mixer_input_names": ["Mixer/In:07"],
                     "sources": ["Mic/Lin/In:07"]
                 },
                 {
                     "name": "Drums",
                     "mixer_inputs": [7, 8],
+                    "mixer_input_names": ["Mixer/In:08", "Mixer/In:09"],
                     "sources": ["ADAT/In:01", "ADAT/In:02"]
                 },
                 {
                     "name": "Backing track",
                     "mixer_inputs": [9, 10],
+                    "mixer_input_names": ["Mixer/In:10", "Mixer/In:11"],
                     "sources": ["1394/In:01", "1394/In:02"]
                 },
                 {
                     "name": "Click",
                     "mixer_inputs": [11],
+                    "mixer_input_names": ["Mixer/In:12"],
                     "sources": ["1394/In:03"]
-                }
-            ]
-        },
-        "00130e0401408671": {
-            "buses": [
-                {
-                    "name": "Drums mix",
-                    "inputs": [0, 1, 2, 3, 4, 5],
-                    "mixer_outputs": [0, 1],
-                    "destinations": ["ADAT/Out:01", "ADAT/Out:02"]
-                }],
-            "inputs":[
-                {
-                    "name": "Overhead",
-                    "mixer_inputs": [0, 1],
-                    "sources": ["Mic/Lin/Inst:01", "Mic/Lin/Inst:02"]
-                },
-                {
-                    "name": "Kick",
-                    "mixer_inputs": [2],
-                    "sources": ["Mic/Lin/In:03"]
-                },
-                {
-                    "name": "Snare",
-                    "mixer_inputs": [3],
-                    "sources": ["Mic/Lin/In:04"]
-                },
-                {
-                    "name": "Tom 1",
-                    "mixer_inputs": [4],
-                    "sources": ["Mic/Lin/In:05"]
-                },
-                {
-                    "name": "Tom 2",
-                    "mixer_inputs": [5],
-                    "sources": ["Mic/Lin/In:06"]
-                },
-                {
-                    "name": "Floor tom",
-                    "mixer_inputs": [6],
-                    "sources": ["Mic/Lin/In:07"]
                 }
             ]
         }

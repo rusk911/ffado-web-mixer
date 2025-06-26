@@ -13,7 +13,6 @@ from collections import defaultdict
 from ffado.config import *
 from ffado.configuration import *
 from ffado.dbus_util import *
-from time import sleep
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("ffado-websockets-mixer")
@@ -105,13 +104,48 @@ class MatrixMixer():
 
             outKey = outKey+1
 
+class Monitoring():
+    def __init__(self, hw, path):
+        self.iface = dbus.Interface(
+                hw.bus.get_object(hw.servername, path),
+                dbus_interface="org.ffado.Control.Element.Discrete")
+        self.value = self.iface.getValue()
 
+    def getvalue(self):
+        return self.value
 
+    def setvalue(self, v):
+        if v != self.value:
+            self.iface.setValue(v)
+            self.value = v
+            
+class PeakMeters():
+    def __init__(self, guid):
+        self.guid = guid
+        bus = dbus.SessionBus()
+        device = bus.get_object("org.ffado.Control", "/org/ffado/Control/DeviceManager/%s/EAP/Router" % guid)
+        self.interface = dbus.Interface(device, dbus_interface="org.ffado.Control.Element.CrossbarRouter")
+        self.destinationNames = self.interface.getDestinationNames()
+        
+
+    def getPeakValues(self):
+        out = {}
+        values = self.interface.getPeakValues()
+        for value in values:
+            out[str(value[0])] = float(value[1])
+        
+        return out
+        
+    def getDastinationNames(self):
+        return self.destinationNames
 
 class FfadoDbusClient():
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.connectToDBUS()
         self.devices = {}
+        self.meters = {}
+        self.monitoring = {}
         self.DiscoverDevices()
 
     def connectToDBUS(self):
@@ -194,10 +228,53 @@ class FfadoDbusClient():
                 nickname = TextInterface( FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+"/DeviceManager/"+path+"/Generic/Nickname" )
              
                 self.devices[guid] = MatrixMixer(guid)
+                self.meters[guid] = PeakMeters(guid)
+                self.monitoring[guid] = [
+                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"),
+                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"),
+                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"),
+                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume4")
+                ]
+                if modelName != "SAFFIRE_PRO_14":
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume5"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume6"))
+
+                if modelName == "SAFFIRE_PRO_40":
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume7"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume8"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume9"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume10"))
+
     
     def setVolume(self, data):
         mixer = self.devices[data[0]]
         mixer.setVolume(data)
+
+    def reducePeakValue(self, val):
+        # seems like max value from dbus is 4095
+        # but we don't need more then 0-9 
+        # and send only 1 byte over network
+        return int(round(val / 4095 * 9))
+    
+    def updateMeters(self):
+        out = {}
+        for guid in self.devices.keys():
+            out[guid] = {}
+            peakValues = self.meters[guid].getPeakValues()
+
+            out[guid]['buses'] = []
+            for key, bus in enumerate(self.config['devices'][guid]['buses']):
+                out[guid]['buses'].append([])
+                for destination in bus['destinations']:
+                    out[guid]['buses'][key].append(self.reducePeakValue(peakValues[destination]))
+
+            out[guid]['inputs'] = []
+            for key, input in enumerate(self.config['devices'][guid]['inputs']):
+                out[guid]['inputs'].append([])
+                for mixer_input_name in input['mixer_input_names']:
+                    out[guid]['inputs'][key].append(self.reducePeakValue(peakValues[mixer_input_name]))
+
+        return out
 
 
 #server part
@@ -266,8 +343,17 @@ async def websocket_handler(request):
 
 async def poll_peak_meters(app: web.Application):
     while True:
-        for ws in app["websockets"]:
-            await ws.send_json({'action': 'updateMeters', 'data': {}})
+        meters = dbusClient.updateMeters()
+        
+        todelete = []
+        for k, client in app['websockets'].items():
+            try:
+                await client.send_json({'action': 'updateMeters', 'data': meters})
+            except ClientConnectionResetError:
+                log.info('connection still in pool, remove it')
+                todelete.append(k)
+        for k in todelete:
+            del app['websockets'][k]
         
         await asyncio.sleep(0.05)
 
@@ -286,7 +372,7 @@ def shutdown():
     app['websockets'].clear()
     app[peak_meters_poller].cancel()
     
-dbusClient = FfadoDbusClient()
+dbusClient = FfadoDbusClient(config)
 app = web.Application()
 peak_meters_poller = web.AppKey("peak_meters_poller", asyncio.Task[None])
 app['websockets'] = defaultdict(dict)
