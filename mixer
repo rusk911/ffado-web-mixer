@@ -118,6 +118,9 @@ class Monitoring():
         if v != self.value:
             self.iface.setValue(v)
             self.value = v
+
+    def updateVolume(self):
+        buses = config['devices'][self.guid]['inputs']
             
 class PeakMeters():
     def __init__(self, guid):
@@ -245,6 +248,8 @@ class FfadoDbusClient():
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume9"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume10"))
 
+                self.updateMasterVolumes()
+
     
     def setVolume(self, data):
         mixer = self.devices[data[0]]
@@ -254,25 +259,34 @@ class FfadoDbusClient():
         # seems like max value from dbus is 4095
         # but we don't need more then 0-9 
         # and send only 1 byte over network
-        return int(round(val / 4095 * 9))
+        ret = int(round(val / 4095 * 100))
+        if ret > 100:
+            ret = 100
+
+        return ret
+    
+    def updateMasterVolumes(self):
+        pass
     
     def updateMeters(self):
         out = {}
+        peakValues = {}
         for guid in self.devices.keys():
+            peakValues[guid] = self.meters[guid].getPeakValues()
             out[guid] = {}
-            peakValues = self.meters[guid].getPeakValues()
 
+        for guid in self.devices.keys():
             out[guid]['buses'] = []
             for key, bus in enumerate(self.config['devices'][guid]['buses']):
                 out[guid]['buses'].append([])
-                for destination in bus['destinations']:
-                    out[guid]['buses'][key].append(self.reducePeakValue(peakValues[destination]))
+                for destination in bus['monitor']['outputs']:
+                    out[guid]['buses'][key].append(self.reducePeakValue(peakValues[bus['monitor']['device']][destination]))
 
             out[guid]['inputs'] = []
             for key, input in enumerate(self.config['devices'][guid]['inputs']):
                 out[guid]['inputs'].append([])
                 for mixer_input_name in input['mixer_input_names']:
-                    out[guid]['inputs'][key].append(self.reducePeakValue(peakValues[mixer_input_name]))
+                    out[guid]['inputs'][key].append(self.reducePeakValue(peakValues[guid][mixer_input_name]))
 
         return out
 
@@ -355,7 +369,7 @@ async def poll_peak_meters(app: web.Application):
         for k in todelete:
             del app['websockets'][k]
         
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.1)
 
 async def background_tasks(app):
     app[peak_meters_poller] = asyncio.create_task(poll_peak_meters(app))

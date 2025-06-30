@@ -9,7 +9,7 @@
                     "destinations": ["Line/Out:01", "Line/Out:02"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": [0, 1]
+                        "outputs": ["Line/Out:01", "Line/Out:02"]
                     }
                 },
                 {
@@ -19,7 +19,7 @@
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": [2, 3]
+                        "outputs": ["Line/Out:03", "Line/Out:04"]
                     }
                 },
                 {
@@ -29,7 +29,7 @@
                     "destinations": ["Line/Out:05", "Line/Out:06"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": [4, 5]
+                        "outputs": ["Line/Out:05", "Line/Out:06"]
                     }
                 },
                 {
@@ -39,7 +39,7 @@
                     "destinations": ["Line/Out:05", "Line/Out:06"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": [6, 7]
+                        "outputs": ["Line/Out:05", "Line/Out:06"]
                     }
                 },
                 {
@@ -49,7 +49,7 @@
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": [2, 3]
+                        "outputs": ["Line/Out:03", "Line/Out:04"]
                     }
                 },
                 {
@@ -59,7 +59,7 @@
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": [2, 3]
+                        "outputs": ["Line/Out:03", "Line/Out:04"]
                     }
                 },
                 {
@@ -69,7 +69,7 @@
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": [2, 3]
+                        "outputs": ["Line/Out:03", "Line/Out:04"]
                     }
                 }
             ],
@@ -100,7 +100,7 @@
                 },
                 {
                     "name": "Keyboards",
-                    "mixer_inputs": [16, 17],
+                    "mixer_inputs": [4, 5],
                     "mixer_input_names": ["Mixer/In:05", "Mixer/In:06"],
                     "sources": ["Mic/Lin/In:05", "Mic/Lin/In:06"]
                 },
@@ -118,8 +118,8 @@
                 },
                 {
                     "name": "Backing track",
-                    "mixer_inputs": [9, 10],
-                    "mixer_input_names": ["Mixer/In:10", "Mixer/In:11"],
+                    "mixer_inputs": [16, 17],
+                    "mixer_input_names": ["Mixer/In:17", "Mixer/In:18"],
                     "sources": ["1394/In:01", "1394/In:02"]
                 },
                 {
