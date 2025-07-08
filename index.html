@@ -18,6 +18,9 @@
             width: 200px;
             text-align: right;
         }
+        .fader.clipped p.volume {
+            color: #F40000;
+        }
         .mixfader {
             width: 100%;
         }
@@ -155,11 +158,13 @@
             font-family: Arial;
             font-size: 2rem;
             font-weight: bold;
-            padding: 6px 24px;
+            padding: 7px 24px;
             text-decoration: none;
             text-shadow: 0px 1px 0px #ffffff;
             margin: 0.5em;
             float: right;
+            width: 140px;
+            text-align: center;
         }
         .button:hover {
             background:linear-gradient(to bottom, #dfdfdf 5%, #ededed 100%);
@@ -169,11 +174,14 @@
             position:relative;
             top:1px;
         }
+        .button.ctrl.selected {
+            color:#F40000
+        }
     </style>
 </head>
 <body>
 <select id="bus_selector" name="bus_selector">
-    <option>Choose bus</option>
+    <option value="-2">Choose bus</option>
 </select>
 <template id="option">
     <option></option>
@@ -195,7 +203,9 @@
     var myWebSocket;
     var config;
     var clientId;
-    var selectedBus;
+    var selectedBus = -1; // -1 meand not selected
+    var selectedControl = -1; // -1 means not selected
+    var prepost = 'post'; // post-fader metering default
     function buildMixer(config) {
         const select = document.querySelector("#bus_selector");
         for(const [uuid, device] of Object.entries(config.devices)) {
@@ -212,38 +222,77 @@
                 const busDiv = busClone.querySelectorAll('div');
                 busDiv[0].id = uuid + '_' + busKey;
 
-
                 const masterClone = document.querySelector("#fader").content.cloneNode(true);
                 const masterDiv = masterClone.querySelectorAll('div.fader');
+                masterDiv[0].dataset.clipped_timestamp = Date.now();
                 masterDiv[0].classList.add('master');
+                masterDiv[0].dataset.bus = busKey;
                 const masterName = masterClone.querySelectorAll('p.name');
                 const masterInput = masterClone.querySelectorAll('input');
             
                 masterInput[0].id = uuid+'_master_'+busKey;
                 masterInput[0].max = 0;//physical outputs do not accept values above 0 db
                 masterInput[0].dataset.bus = busKey;
-                masterInput[0].value = 0;//ToDo
+                masterInput[0].dataset.device = bus.monitor.device;
+
                 const masterVolume = masterClone.querySelectorAll('p.volume');
-                masterVolume[0].innerHTML = Math.round(masterInput[0].value) + ' db';//ToDo
+                if('outputs' in bus.monitor) {
+                    masterVolume[0].innerHTML = Math.round(bus.monitor.volume) + ' db';
+                }
+
+                const prepostButton = document.createElement("div");
+                prepostButton.className = "button";
+                prepostButton.classList.add("prepost");
+                prepostButton.innerHTML = 'POST';
+
+                prepostButton.addEventListener("click", function(event) {
+                    if(prepost == 'post') {
+                        event.target.innerHTML = 'PRE';
+                        prepost = 'pre';
+                    } else {
+                        event.target.innerHTML = 'POST';
+                        prepost = 'post';
+                    }
+                });
+
+                masterVolume[0].after(prepostButton);
+                
                 const ctrlButton = document.createElement("div");
                 ctrlButton.className = "button";
                 ctrlButton.classList.add("ctrl");
                 ctrlButton.innerHTML = 'CTRL';
-                masterVolume[0].after(ctrlButton);
-                masterInput[0].dataset.pan = 0;//ToDo: bus.volumes[faderKey].pan;
-                masterInput[0].addEventListener("input", (event) => {
-                    //myWebSocket.send(JSON.stringify({'a':'v','c':clientId,'d':[uuid, parseInt(event.target.dataset.bus), parseInt(event.target.value), parseFloat(event.target.dataset.pan)]}));
-                    event.target.parentNode.querySelectorAll('p.volume')[0].innerHTML = Math.round(event.target.value) + ' db';
+                ctrlButton.addEventListener("click", function(event) {
+                    if(busKey == selectedControl) {
+                        selectedControl = -1;
+                        event.target.classList.remove("selected");
+                        myWebSocket.send(JSON.stringify({'a':'ctrl','c':clientId,'d':[uuid, -1]}));
+                    } else {
+                        selectedControl = busKey;
+                        myWebSocket.send(JSON.stringify({'a':'ctrl','c':clientId,'d':[uuid, busKey]}));
+                        const ctrl = document.querySelectorAll('div.ctrl.selected')
+                        ctrl.forEach(function(el) {el.classList.remove("selected")});
+                        event.target.classList.add("selected");
+                    }
                 });
+                masterVolume[0].after(ctrlButton);
                 masterName[0].innerHTML = "Master";
-                if(typeof device.buses[busKey].monitor != 'undefined') {
                     const peak_meter = masterClone.querySelectorAll('div.peak_meter');
-                    for(k in device.buses[busKey].monitor.outputs) {
+                    for(k in device.buses[busKey].monitor.output_names) {
                         const div = document.createElement("div");
                         div.dataset.disabled = 1;
                         div.id = "master_peak_" + uuid + "_" + busKey + "_" + k;
                         peak_meter[0].appendChild(div);
                     }
+
+                if('outputs' in bus.monitor) {
+                    masterInput[0].value = bus.monitor.volume;//ToDo
+                    masterInput[0].dataset.pan = bus.monitor.pan;
+                    masterInput[0].addEventListener("input", (event) => {
+                        myWebSocket.send(JSON.stringify({'a':'m','c':clientId,'d':[uuid, parseInt(event.target.value), parseFloat(event.target.dataset.pan)]}));
+                        event.target.parentNode.querySelectorAll('p.volume')[0].innerHTML = Math.round(event.target.value) + ' db';
+                    });
+                } else {
+                    masterInput[0].disabled = 'disabled';
                 }
                 busDiv[0].appendChild(masterClone);
 
@@ -287,23 +336,26 @@
             }
         }
         select.addEventListener("change", (event) => {
-            
             showBus(event.target.value);
         }, false);
+        selectedBus = -2;
     }
 
     function updateMeters(values) {
+        var factor = 1;
         for(const [uuid, device] of Object.entries(config.devices)) {
             for(const [busKey, bus] of Object.entries(device.buses)) {
-                for(const [k, out] of Object.entries(bus.monitor.outputs)) {
+                for(const [k, out] of Object.entries(bus.monitor.output_names)) {
                     const master_peak_meter = document.getElementById("master_peak_" + uuid + "_" + busKey + "_" + k);
+                    const container = master_peak_meter.parentNode.parentNode;
                     if(master_peak_meter.dataset.disabled == 1) {
                         continue;
                     }
-                    //const fader_value = document.getElementById(uuid + "_master_" + busKey).value;
-                    //const factor = Math.pow(10, fader_value/20);
-                    //var value = 100 - (values[uuid].buses[busKey][k] * factor);
-                    var value = 100 - values[uuid].buses[busKey][k];
+                    if(prepost == 'post') {
+                        const fader_value = document.getElementById(uuid + "_master_" + busKey).value;
+                        factor = Math.pow(10, fader_value/20);
+                    }
+                    var value = 100 - (values[uuid].buses[busKey][k] * factor);
                     if(parseInt(master_peak_meter.style.width, 10) < value ) {
                         return;
                     }
@@ -312,16 +364,26 @@
                     } else if(value > 100) {
                         value = 100;
                     }
+                    if(value < 5) {
+                        container.classList.add('clipped');
+                        container.dataset.clipped_timestamp = Date.now();
+                    }
                     master_peak_meter.style.width = value + '%';
+                    if(container.classList.contains('clipped') && (Date.now() - container.dataset.clipped_timestamp > 6)) {
+                        container.classList.remove('clipped');
+                    }
                 }
                 for(const [faderKey, inputNumber] of Object.entries(bus.inputs)) {
                     for(const k in device.inputs[inputNumber].sources) {
                         const peak_meter = document.getElementById("peak_" + uuid + "_" + busKey + "_" + faderKey + "_" + k);
+                        const container = peak_meter.parentNode.parentNode;
                         if(peak_meter.dataset.disabled == 1) {
                             continue;
                         }
-                        const fader_value = document.getElementById(uuid + "_" + faderKey + "_" + busKey).value;
-                        const factor = Math.pow(10, fader_value/20);
+                        if(prepost == 'post') {
+                            const fader_value = document.getElementById(uuid + "_" + faderKey + "_" + busKey).value;
+                            factor = Math.pow(10, fader_value/20);
+                        }
                         var value = 100 - (values[uuid].inputs[faderKey][k] * factor);
                         if(parseInt(peak_meter.style.width, 10) < value ) {
                             return;
@@ -331,7 +393,14 @@
                         } else if(value > 100) {
                             value = 100;
                         }
+                        if(value < 5) {
+                            container.classList.add('clipped');
+                            container.dataset.clipped_timestamp = Date.now();
+                        }
                         peak_meter.style.width = value + '%';
+                        if(container.classList.contains('clipped') && (Date.now() - container.dataset.clipped_timestamp > 6)) {
+                            container.classList.remove('clipped');
+                        }
                     }
                 }
             }
@@ -341,6 +410,12 @@
     function setVolume(data) {
         document.getElementById(data[0]+'_'+data[1]+'_'+data[2]).value = data[3];
         document.getElementById(data[0]+'_'+data[1]+'_'+data[2]).dataset.pan = data[4];
+        document.getElementById(data[0]+'_'+data[1]+'_'+data[2]).parentNode.querySelectorAll('p.volume')[0].innerHTML = Math.round(data[3]) + ' db';
+    }
+
+    function setMasterVolume(data) {
+        document.getElementById(data[0]+'_master_'+data[2]).value = data[1];
+        document.getElementById(data[0]+'_master_'+data[2]).parentNode.querySelectorAll('p.volume')[0].innerHTML = Math.round(data[1]) + ' db';
     }
 
     function connectToWS() {
@@ -363,10 +438,15 @@
             if(data.action == 'setVolume') {
                 setVolume(data.data);
             }
+            if(data.action == 'setMasterVolume') {
+                setMasterVolume(data.data);
+            }
             if(data.action == 'buildMixer') {
                 clientId = data.clientId;
-                buildMixer(data.data);
                 config = data.data;
+                if(selectedBus == -1) {
+                    buildMixer(data.data);
+                }
             }
         }
 
@@ -388,14 +468,17 @@
     }
 
     function showBus(busId) {
+        selectedBus = busId;
         [].forEach.call(document.querySelectorAll('.bus'), function (el) {
             el.style.display = 'none';
             [].forEach.call(document.querySelectorAll("div.peak_meter > div"), function (el) {
                 el.dataset.disabled = 1;
             });
         });
+        if(busId == '-2') {
+            return;
+        }
         const bus = document.getElementById(busId);
-        console.log(bus);
         bus.style.display = "block";
         [].forEach.call(bus.querySelectorAll("div.peak_meter > div"), function (el) {
             el.dataset.disabled = 0;

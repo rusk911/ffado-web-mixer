@@ -111,18 +111,18 @@ class Monitoring():
                 dbus_interface="org.ffado.Control.Element.Discrete")
         self.value = self.iface.getValue()
 
-    def getvalue(self):
+    def getValue(self):
         return self.value
 
-    def setvalue(self, v):
+    def setValue(self, v):
         if v != self.value:
-            self.iface.setValue(v)
+            self.iface.setValue(int(v))
             self.value = v
 
     def updateVolume(self):
-        buses = config['devices'][self.guid]['inputs']
+        buses = config['devices'][self.guid]['destinations']
             
-class PeakMeters():
+class CrossbarRouter():
     def __init__(self, guid):
         self.guid = guid
         bus = dbus.SessionBus()
@@ -141,13 +141,21 @@ class PeakMeters():
         
     def getDastinationNames(self):
         return self.destinationNames
+    
+    def switchControl(self, busKey):
+        for k, outname in enumerate(config['devices'][self.guid]['control']['destinations']):
+            src = self.interface.getSourceForDestination(outname)
+            lastin = str(src)
+            if lastin != "":
+                self.interface.setConnectionState(lastin, outname, False)
+            self.interface.setConnectionState(config['devices'][self.guid]['buses'][busKey]['mixer_output_names'][k], outname, True)
 
 class FfadoDbusClient():
     def __init__(self, config):
         self.config = config
         self.connectToDBUS()
         self.devices = {}
-        self.meters = {}
+        self.crossbarRouter = {}
         self.monitoring = {}
         self.DiscoverDevices()
 
@@ -231,7 +239,7 @@ class FfadoDbusClient():
                 nickname = TextInterface( FFADO_DBUS_SERVER, FFADO_DBUS_BASEPATH+"/DeviceManager/"+path+"/Generic/Nickname" )
              
                 self.devices[guid] = MatrixMixer(guid)
-                self.meters[guid] = PeakMeters(guid)
+                self.crossbarRouter[guid] = CrossbarRouter(guid)
                 self.monitoring[guid] = [
                     Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"),
                     Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"),
@@ -250,36 +258,65 @@ class FfadoDbusClient():
 
                 self.updateMasterVolumes()
 
-    
+    def switchControl(self, data):
+        self.crossbarRouter[data[0]].switchControl(int(data[1]))
+
     def setVolume(self, data):
         mixer = self.devices[data[0]]
         mixer.setVolume(data)
 
-    def reducePeakValue(self, val):
-        # seems like max value from dbus is 4095
-        # but we don't need more then 0-9 
-        # and send only 1 byte over network
-        ret = int(round(val / 4095 * 100))
-        if ret > 100:
-            ret = 100
+    def setMasterVolume(self, data):
+        guid = data[0]
+        busKey = data[2]
+        if "outputs" in self.config['devices'][guid]['buses'][busKey]["monitor"]:
+            monitoringControls = self.monitoring[self.config['devices'][guid]['buses'][busKey]["monitor"]["device"]]
+            outs = self.config['devices'][guid]['buses'][busKey]["monitor"]['outputs']
+            if len(outs) == 2:
+                # stereo output
+                vl = int(toDBvalue(getVolumeLeft(fromDBvalue(data[1]), 0)))
+                vr = int(toDBvalue(getVolumeRight(fromDBvalue(data[1]), 0)))
+                monitoringControls[outs[0]].setValue(vl)
+                monitoringControls[outs[1]].setValue(vr)
+                config['devices'][guid]['buses'][busKey]["monitor"]['volume'] = toDBvalue(getStereoVolume(fromDBvalue(vl), fromDBvalue(vr)))
+            else:
+                # mono output
+                monitoringControls[outs[0]].setValue(data[1])
+                config['devices'][guid]['buses'][busKey]["monitor"]['volume'] = int(data[1])
 
-        return ret
+    def reducePeakValue(self, val):
+        # seems like max value from dbus is 4096
+        # but we don't need more then 0-100
+        if val < 0:
+            val = 0
+        return int(round(math.sqrt(val / 4096) * 100))
     
     def updateMasterVolumes(self):
-        pass
-    
+        for guid in self.config["devices"]:
+            for key, bus in enumerate(self.config['devices'][guid]['buses']):
+                if "outputs" in bus["monitor"]:
+                    if len(bus["monitor"]["outputs"]) == 1:
+                        # mono bus
+                        volume = int(self.monitoring[bus["monitor"]["device"]][bus["monitor"]["outputs"][k]].getValue())
+                        self.config['devices'][guid]['buses'][key]["monitor"]["volume"] = volume
+                        self.config['devices'][guid]['buses'][key]["monitor"]["pan"] = 0.0
+                    if len(bus["monitor"]["outputs"]) == 2:
+                        # stereo bus
+                        vl = int(self.monitoring[bus["monitor"]["device"]][bus["monitor"]["outputs"][0]].getValue())
+                        vr = int(self.monitoring[bus["monitor"]["device"]][bus["monitor"]["outputs"][1]].getValue())
+                        self.config['devices'][guid]['buses'][key]["monitor"]["volume"] = toDBvalue(getStereoVolume(fromDBvalue(vl), fromDBvalue(vr)))
+                        self.config['devices'][guid]['buses'][key]["monitor"]["pan"] = getStereoBalance(fromDBvalue(vl), fromDBvalue(vr))
     def updateMeters(self):
         out = {}
         peakValues = {}
         for guid in self.devices.keys():
-            peakValues[guid] = self.meters[guid].getPeakValues()
+            peakValues[guid] = self.crossbarRouter[guid].getPeakValues()
             out[guid] = {}
 
         for guid in self.devices.keys():
             out[guid]['buses'] = []
             for key, bus in enumerate(self.config['devices'][guid]['buses']):
                 out[guid]['buses'].append([])
-                for destination in bus['monitor']['outputs']:
+                for destination in bus['monitor']['output_names']:
                     out[guid]['buses'][key].append(self.reducePeakValue(peakValues[bus['monitor']['device']][destination]))
 
             out[guid]['inputs'] = []
@@ -327,21 +364,20 @@ async def websocket_handler(request):
                 try:
                     messageObj = msg.json()
                     
-                    if type(messageObj) is dict and 'a' in messageObj.keys():                
+                    if type(messageObj) is dict and 'a' in messageObj.keys():   
+                        # input channel volume             
                         if messageObj['a'] == 'v':
                             dbusClient.setVolume(messageObj['d'])
-                            todelete = []
-                            for k, client in request.app['websockets'].items():
-                                if k == clientId:
-                                    # don't send it back to sender
-                                    continue
-                                try:
-                                    await client.send_json({'action': 'setVolume', 'data': messageObj['d']})
-                                except ClientConnectionResetError:
-                                    log.info('connection still in pool, remove it')
-                                    todelete.append(k)
-                            for k in todelete:
-                                del request.app['websockets'][k]
+                            await sendJsonToClients({'action': 'setVolume', 'data': messageObj['d']}, clientId)
+
+                        # bus master volume
+                        if messageObj['a'] == 'm':
+                            dbusClient.setMasterVolume(messageObj['d'])
+                            await sendJsonToClients({'action': 'setMasterVolume', 'data': messageObj['d']}, clientId)
+
+                        # select control monitor for a bus
+                        if messageObj['a'] == 'ctrl':
+                            dbusClient.switchControl(messageObj['d'])
 
                 except json.decoder.JSONDecodeError:
                     log.info('Message is not json object')
@@ -355,20 +391,23 @@ async def websocket_handler(request):
 
     return ws
 
+async def sendJsonToClients(json, clientId=0):
+    todelete = []
+    for k, client in app['websockets'].items():
+        if k == clientId:
+            # don't send it back to sender
+            continue
+        try:
+            await client.send_json(json)
+        except ClientConnectionResetError:
+            log.info('connection still in pool, remove it')
+            todelete.append(k)
+    for k in todelete:
+        del app['websockets'][k]
+
 async def poll_peak_meters(app: web.Application):
     while True:
-        meters = dbusClient.updateMeters()
-        
-        todelete = []
-        for k, client in app['websockets'].items():
-            try:
-                await client.send_json({'action': 'updateMeters', 'data': meters})
-            except ClientConnectionResetError:
-                log.info('connection still in pool, remove it')
-                todelete.append(k)
-        for k in todelete:
-            del app['websockets'][k]
-        
+        await sendJsonToClients({'action': 'updateMeters', 'data': dbusClient.updateMeters()})        
         await asyncio.sleep(0.1)
 
 async def background_tasks(app):

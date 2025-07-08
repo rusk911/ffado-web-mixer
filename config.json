@@ -1,75 +1,91 @@
 {
     "devices": {
         "00130e04048014ef": {
+            "control": {
+                "destinations": ["Line/Out:05", "Line/Out:06"]
+            },
             "buses": [
                 {
                     "name": "Vocalist 1 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [0, 1],
+                    "mixer_output_names": ["Mixer/Out:01", "Mixer/Out:02"],
                     "destinations": ["Line/Out:01", "Line/Out:02"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": ["Line/Out:01", "Line/Out:02"]
+                        "outputs": [0, 1],
+                        "output_names": ["Line/Out:01", "Line/Out:02"]
                     }
                 },
                 {
                     "name": "Vocalist 2 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [2, 3],
+                    "mixer_output_names": ["Mixer/Out:03", "Mixer/Out:04"],
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": ["Line/Out:03", "Line/Out:04"]
+                        "outputs": [2, 3],
+                        "output_names": ["Line/Out:03", "Line/Out:04"]
                     }
                 },
                 {
                     "name": "Keyboardist bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [4, 5],
+                    "mixer_output_names": ["Mixer/Out:05", "Mixer/Out:06"],
                     "destinations": ["Line/Out:05", "Line/Out:06"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": ["Line/Out:05", "Line/Out:06"]
+                        "outputs": [4, 5],
+                        "output_names": ["Line/Out:05", "Line/Out:06"]
                     }
                 },
                 {
                     "name": "Guitarist 1 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [6, 7],
+                    "mixer_output_names": ["Mixer/Out:07", "Mixer/Out:08"],
                     "destinations": ["Line/Out:05", "Line/Out:06"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": ["Line/Out:05", "Line/Out:06"]
+                        "outputs": [4, 5],
+                        "output_names": ["Line/Out:05", "Line/Out:06"]
                     }
                 },
                 {
                     "name": "Guitarist 2 bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [8, 9],
+                    "mixer_output_names": ["Mixer/Out:09", "Mixer/Out:10"],
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": ["Line/Out:03", "Line/Out:04"]
+                        "outputs": [2, 3],
+                        "output_names": ["Line/Out:03", "Line/Out:04"]
                     }
                 },
                 {
                     "name": "Bassist bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [10, 11],
+                    "mixer_output_names": ["Mixer/Out:11", "Mixer/Out:12"],
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": ["Line/Out:03", "Line/Out:04"]
+                        "outputs": [2, 3],
+                        "output_names": ["Line/Out:03", "Line/Out:04"]
                     }
                 },
                 {
                     "name": "Drummer bus",
                     "inputs": [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     "mixer_outputs": [12, 13],
+                    "mixer_output_names": ["Mixer/Out:13", "Mixer/Out:14"],
                     "destinations": ["Line/Out:03", "Line/Out:04"],
                     "monitor": {
                         "device": "00130e04048014ef",
-                        "outputs": ["Line/Out:03", "Line/Out:04"]
+                        "output_names": ["Line/Out:03", "Line/Out:04"]
                     }
                 }
             ],
