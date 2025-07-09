@@ -1,6 +1,8 @@
 # ffado-web-mixer
 A simple websockets server to control internal firewire devices mixers mostly on Dice II based interfaces.
 
+![Screenshot](https://raw.githubusercontent.com/rusk911/ffado-web-mixer/master/img/screenshot.gif)
+
 Use config.json for configuration. There is an example for 7 members band. Should be enough, but one more bus can be added to first device since 2 mixer outputs are unused.
 
 I used 2 x Focusrite Saffire PRO 40 sound interfaces at rehearsal and Focusrite Saffire PRO 26 at home for development.
