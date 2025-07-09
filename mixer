@@ -158,6 +158,7 @@ class FfadoDbusClient():
         self.crossbarRouter = {}
         self.monitoring = {}
         self.DiscoverDevices()
+        self.updateMasterVolumes()
 
     def connectToDBUS(self):
         try:
@@ -240,23 +241,31 @@ class FfadoDbusClient():
              
                 self.devices[guid] = MatrixMixer(guid)
                 self.crossbarRouter[guid] = CrossbarRouter(guid)
-                self.monitoring[guid] = [
-                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"),
-                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"),
-                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"),
-                    Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume4")
-                ]
-                if modelName != "SAFFIRE_PRO_14":
+                self.monitoring[guid] = []
+                if modelName == "SAFFIRE_PRO_14":
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume4"))
+                if modelName == "SAFFIRE_PRO_26":
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume4"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume5"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume6"))
-
                 if modelName == "SAFFIRE_PRO_40":
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume4"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume5"))
+                    self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume6"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume7"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume8"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume9"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume10"))
 
-                self.updateMasterVolumes()
 
     def switchControl(self, data):
         self.crossbarRouter[data[0]].switchControl(int(data[1]))
