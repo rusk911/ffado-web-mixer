@@ -242,19 +242,19 @@ class FfadoDbusClient():
                 self.devices[guid] = MatrixMixer(guid)
                 self.crossbarRouter[guid] = CrossbarRouter(guid)
                 self.monitoring[guid] = []
-                if modelName == "SAFFIRE_PRO_14":
+                if modelName == "SAFFIRE_PRO14":
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume4"))
-                if modelName == "SAFFIRE_PRO_26":
+                if modelName == "SAFFIRE_PRO26":
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume4"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume5"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume6"))
-                if modelName == "SAFFIRE_PRO_40":
+                if modelName == "SAFFIRE_PRO40":
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume1"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume2"))
                     self.monitoring[guid].append(Monitoring(hw, hw.basepath+"/EAP/Monitoring/LineOut/Volume3"))
