@@ -1,11 +1,14 @@
 # ffado-web-mixer
 A simple websockets server to control internal firewire devices mixers mostly on Dice II based interfaces.
 
+## Why?
+There are lot of cheap old firewire interfaces on second hand market because firewire support is removed from recent Windows and MacOS versions. However they are decent pieces of hardware and can be used for some tasks under Linux. For example all DICE II based interfaces have internal 18 ins X 16 outs matrix mixer and flexible signal router. Most of them are supported by ffado-mixer written in python. However it's hard to adjust for some tasks. I used 2 x Focusrite Saffire PRO 40 sound interfaces at rehearsal for IEM monitoring. With this small program you can set up independent stereo buses for each band member and provide easy to use web based mixer interface to use from any smartphone connected to same network.
+
 <img src="https://raw.githubusercontent.com/rusk911/ffado-web-mixer/master/img/screenshot.gif" alt="Screenshot" width="300">
 
-Use config.json for configuration. There is an example for 7 members band. Should be enough, but one more bus can be added to first device since 2 mixer outputs are unused.
+## How?
 
-I used 2 x Focusrite Saffire PRO 40 sound interfaces at rehearsal and Focusrite Saffire PRO 26 at home for development.
+Use config.json for configuration. There is an example for 7 members band. Should be enough, but one more bus can be added to first device since 2 mixer outputs are unused.
 
 Indexes under "devices" in config.json are devices GUIDs, you can find them from ffado's log output using grep ffado /var/log/syslog or something like that. Or copy from JACK's graph using rename function for a port.
 Strings with inputs are not used in script, I have added them just to remember who is using which physical port. I have configured them using ffado-mixer's crossbar router. Then I have adjusted stereo panning in ffado-mixer. Panning is not implementing in web ui but it follows actual panning from ffado-mixer and sets volumes using -6db center rule. All indexes starting from 0. You can simple use this config as template and rename inputs and buses. I assume all guitars and vocals are mono inputs, but drum mix and keyboards are stereo. All buses outputs are stereo. Each device have 10 ouputs so I have configured 2 buses outputs to second device through ADAT.
