@@ -7,6 +7,18 @@ There are lot of cheap old firewire interfaces on second hand market because fir
 <img src="https://raw.githubusercontent.com/rusk911/ffado-web-mixer/master/img/screenshot.gif" alt="Screenshot" width="300">
 
 ## How?
+Install libffado2 and ffado-mixer-qt4 packages for your distro first, it will also install python if you don't have it.
+
+```
+sudo apt install libffado2 ffado-mixer-qt4
+```
+
+Install <a href="https://pip.pypa.io/en/stable/installation/">pip</a>, a python package manager. Then run
+
+```
+pip install -r requirements.txt
+
+```
 
 Use config.json for configuration. There is an example for 7 members band. Should be enough, but one more bus can be added to first device since 2 mixer outputs are unused.
 
