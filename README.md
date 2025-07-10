@@ -11,7 +11,9 @@ There are lot of cheap old firewire interfaces on second hand market because fir
 Use config.json for configuration. There is an example for 7 members band. Should be enough, but one more bus can be added to first device since 2 mixer outputs are unused.
 
 Indexes under "devices" in config.json are devices GUIDs, you can find them from ffado's log output using grep ffado /var/log/syslog or something like that. Or copy from JACK's graph using rename function for a port.
-Strings with inputs are not used in script, I have added them just to remember who is using which physical port. I have configured them using ffado-mixer's crossbar router. Then I have adjusted stereo panning in ffado-mixer. Panning is not implementing in web ui but it follows actual panning from ffado-mixer and sets volumes using -6db center rule. All indexes starting from 0. You can simple use this config as template and rename inputs and buses. I assume all guitars and vocals are mono inputs, but drum mix and keyboards are stereo. All buses outputs are stereo. Each device have 10 ouputs so I have configured 2 buses outputs to second device through ADAT.
+Strings with inputs are not used in script, I have added them just to remember who is using which physical port. I have configured them using ffado-mixer's crossbar router. Then I have adjusted stereo panning in ffado-mixer. Panning in web ui is not implemented yet, but it follows actual panning from ffado-mixer and sets volumes using -6db center rule. All indexes starting from 0. You can simple use this config as template and rename inputs and buses. I assume all guitars and vocals are mono inputs, but drum mix and keyboards are stereo. All buses outputs are stereo. Each device have 10 ouputs so I have configured 2 buses outputs to second device through ADAT.
+
+After configured server is succesefully started, just navigate to port 8080 from your browser. Use localhost:8080 or 127.0.0.1:8080 from same PC or use this PC IP address from any device connected to same local network.
 
 # Explanation of config
 
