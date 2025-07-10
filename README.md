@@ -1,7 +1,7 @@
 # ffado-web-mixer
 A simple websockets server to control internal firewire devices mixers mostly on Dice II based interfaces.
 
-![Screenshot](https://raw.githubusercontent.com/rusk911/ffado-web-mixer/master/img/screenshot.gif | width=300)
+<img src="https://raw.githubusercontent.com/rusk911/ffado-web-mixer/master/img/screenshot.gif" alt="Screenshot" width="300">
 
 Use config.json for configuration. There is an example for 7 members band. Should be enough, but one more bus can be added to first device since 2 mixer outputs are unused.
 
